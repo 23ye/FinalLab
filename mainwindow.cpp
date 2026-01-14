@@ -86,42 +86,60 @@ void MainWindow::initTableView()
 void MainWindow::on_actionAdd_triggered()
 {
     AddWindow dlg(this);
-    if (dlg.exec() == QDialog::Accepted) {
 
-        // 1. 获取用户输入
-        QString category = dlg.getCategory();
-        QString site = dlg.getSite();
-        QString user = dlg.getUser();
-        QString rawPass = dlg.getPassword(); // 这是明文密码
-        QString note = dlg.getNote();
+    // 设置弹窗标题
+    dlg.setWindowTitle("新增账号信息");
 
-        // 2. 加密密码 !!!
-        QString encPass = CryptoUtil::encrypt(rawPass);
+    // 调用 exec() 显示弹窗
+    // 如果用户点了"保存" (我们在 DialogAdd 里写了 accept())，它返回 QDialog::Accepted
+    // 如果用户点了"取消" 或右上角叉号，它返回 QDialog::Rejected
+    int result = dlg.exec();
 
-        // 3. 准备 SQL 插入语句
-        QSqlQuery query;
-        query.prepare("INSERT INTO accounts (category, site, username, enc_password, note, created_at) "
-                      "VALUES (:cat, :site, :user, :pass, :note, :time)");
-
-        query.bindValue(":cat", category);
-        query.bindValue(":site", site);
-        query.bindValue(":user", user);
-        query.bindValue(":pass", encPass); // 存入的是加密后的乱码
-        query.bindValue(":note", note);
-        query.bindValue(":time", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm"));
-
-        // 4. 执行插入并刷新界面
-        if (query.exec()) {
-            QMessageBox::information(this, "成功", "账号已添加！");
-
-            // 刷新模型，让新数据显示在表格里
-            m_model->select();
-        } else {
-            QMessageBox::critical(this, "失败", "数据库错误: " + query.lastError().text());
-        }
-    }else{
+    // === 判断用户操作 ===
+    if (result == QDialog::Accepted) {
+        // 用户点击了保存，这里开始写数据库插入逻辑
+        saveAccountToDb(dlg);
+    } else {
         // 用户点击了取消，什么都不用做
         qDebug() << "用户取消了添加";
+    }
+}
+
+void MainWindow::saveAccountToDb(AddWindow &dlg)
+{
+    // 1. 获取输入
+    QString category = dlg.getCategory();
+    QString site = dlg.getSite();
+    QString user = dlg.getUser();
+    QString rawPass = dlg.getPassword();
+    QString note = dlg.getNote();
+
+    // 2. 加密密码 (实现 CryptoUtil)
+    // 如果还没实现加密，暂时用 rawPass 代替
+    QString encPass = CryptoUtil::encrypt(rawPass);
+
+    // 3. 执行 SQL
+    QSqlQuery query;
+    query.prepare("INSERT INTO accounts (category, site, username, enc_password, note, created_at) "
+                  "VALUES (:cat, :site, :user, :pass, :note, :time)");
+
+    query.bindValue(":cat", category);
+    query.bindValue(":site", site);
+    query.bindValue(":user", user);
+    query.bindValue(":pass", encPass);
+    query.bindValue(":note", note);
+    query.bindValue(":time", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm"));
+
+    if (query.exec()) {
+        QMessageBox::information(this, "成功", "账号添加成功！");
+
+        // 刷新表格显示
+        // 重新查询数据库，让新数据立即出现在界面上
+        if (m_model) {
+            m_model->select();
+        }
+    } else {
+        QMessageBox::critical(this, "错误", "数据库写入失败：" + query.lastError().text());
     }
 }
 
