@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QSplitter>
+#include "databasemanager.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -8,6 +9,12 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     initSideBar();
+    // 测试数据库连接
+    if (DatabaseManager::instance().openDb()) {
+        ui->statusbar->showMessage("数据库连接成功！");
+    } else {
+        ui->statusbar->showMessage("数据库连接失败，请检查日志。");
+    }
 }
 
 MainWindow::~MainWindow()
