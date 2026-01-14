@@ -14,6 +14,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    m_model = nullptr;
     initSideBar();
     // 测试数据库连接
     if (DatabaseManager::instance().openDb()) {
@@ -95,14 +96,48 @@ void MainWindow::on_actionAdd_triggered()
     // 如果用户点了"取消" 或右上角叉号，它返回 QDialog::Rejected
     int result = dlg.exec();
 
-    // === 判断用户操作 ===
+    //判断用户操作
     if (result == QDialog::Accepted) {
         // 用户点击了保存，这里开始写数据库插入逻辑
+
         saveAccountToDb(dlg);
     } else {
         // 用户点击了取消，什么都不用做
         qDebug() << "用户取消了添加";
     }
+}
+
+void MainWindow::on_listWidgetCategories_currentTextChanged(const QString &currentText)
+{
+    if (!m_model) return;
+
+    if (currentText == "所有账号") {
+        m_model->setFilter(""); // 清空过滤器，显示所有
+    } else {
+        // 相当于 SQL: WHERE category = '某类别',要给字符串加单引号
+        //
+        m_model->setFilter(QString("category = '%1'").arg(currentText));
+    }
+    m_model->select(); // 重新执行查询刷新表格
+}
+
+void MainWindow::on_searchEdit_textChanged(const QString &arg1)
+{
+    if (!m_model) return;
+
+    if (arg1.isEmpty()) {
+        // 如果搜索框清空了，就恢复左侧选中的分类
+        QString currentCategory = ui->listWidgetCategories->currentItem()->text();
+        on_listWidgetCategories_currentTextChanged(currentCategory);
+        return;
+    }
+
+    // 相当于 SQL: WHERE site LIKE '%google%' OR username LIKE '%google%'
+    // 这样既能搜网站名，也能搜用户名
+    QString filterStr = QString("(site LIKE '%%1%') OR (username LIKE '%%1%')").arg(arg1);
+
+    m_model->setFilter(filterStr);
+    m_model->select();
 }
 
 void MainWindow::saveAccountToDb(AddWindow &dlg)
