@@ -45,19 +45,19 @@ void MainWindow::initSideBar()
 
 void MainWindow::initTableView()
 {
-    // 1. 创建模型，使用全局数据库连接
+    //创建模型，使用全局数据库连接
     m_model = new QSqlTableModel(this, DatabaseManager::instance().getDb());
 
-    // 2. 绑定表名 (必须和 Navicat 里建的表名完全一致)
+    //绑定表名
     m_model->setTable("accounts");
 
-    // 3. 设置编辑策略：修改后立即更新到数据库 (或者设为 OnManualSubmit 手动提交)
+    //设置编辑策略：修改后立即更新到数据库
     m_model->setEditStrategy(QSqlTableModel::OnFieldChange);
 
-    // 4. 执行查询，把数据拉取下来
+    //执行查询，把数据拉取下来
     m_model->select();
 
-    // 5. 设置表头别名 (让界面显示中文，而不是数据库字段名)
+    //设置表头别名 (让界面显示中文，而不是数据库字段名)
     m_model->setHeaderData(0, Qt::Horizontal, "ID");
     m_model->setHeaderData(1, Qt::Horizontal, "类别");
     m_model->setHeaderData(2, Qt::Horizontal, "网站/标题");
@@ -66,13 +66,13 @@ void MainWindow::initTableView()
     m_model->setHeaderData(5, Qt::Horizontal, "备注");
     m_model->setHeaderData(6, Qt::Horizontal, "创建时间");
 
-    // 6. 将模型绑定到 UI 上的视图
+    //将模型绑定到 UI 上的视图
     ui->tableViewAccounts->setModel(m_model);
 
-    // 7. 细节优化：隐藏 ID 列 (通常用户不需要看 ID)
-    // 注意：必须在 setModel 之后调用 setColumnHidden
+    // 细节优化：隐藏 ID 列
+    // 必须在 setModel 之后调用 setColumnHidden
     ui->tableViewAccounts->setColumnHidden(0, true);
 
-    // 优化：让列宽自动铺满
+    //让列宽自动铺满
     ui->tableViewAccounts->horizontalHeader()->setStretchLastSection(true);
 }
