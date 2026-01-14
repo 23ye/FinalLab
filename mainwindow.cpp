@@ -34,3 +34,8 @@ void MainWindow::initSideBar()
     // 默认选中第一项
     ui->listWidgetCategories->setCurrentRow(0);
 }
+
+void MainWindow::initTableView()
+{
+
+}
