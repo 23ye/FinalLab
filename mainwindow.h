@@ -25,6 +25,7 @@ private slots:
     void on_listWidgetCategories_currentTextChanged(const QString &currentText);
     void on_searchEdit_textChanged(const QString &arg1);
     void showContextMenu(const QPoint &pos);
+    void on_actionDel_triggered();
 
 private:
     Ui::MainWindow *ui;

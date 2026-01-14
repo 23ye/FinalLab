@@ -195,8 +195,35 @@ void MainWindow::showContextMenu(const QPoint &pos)
         });
     }
     else if (selectedItem == actDel) {
-        //on_actionDel_triggered(); // 复用删除功能
+        on_actionDel_triggered(); // 复用删除功能
     }
+}
+
+void MainWindow::on_actionDel_triggered()
+{
+    // 1. 获取当前选中的行
+    QModelIndexList selection = ui->tableViewAccounts->selectionModel()->selectedRows();
+
+    if (selection.isEmpty()) {
+        QMessageBox::warning(this, "提示", "请先选择要删除的账号！");
+        return;
+    }
+
+    // 2. 确认提示
+    int ret = QMessageBox::question(this, "确认删除", "确定要永久删除选中的账号吗？",
+                                    QMessageBox::Yes | QMessageBox::No);
+    if (ret == QMessageBox::No) return;
+
+    // 3. 执行删除
+    // 因为是多选模式可能选中多行，所以用循环
+    for(const QModelIndex &index : selection) {
+        m_model->removeRow(index.row());
+    }
+
+    // 4. 提交更改 (如果是 OnFieldChange 策略，这一步其实 removeRow 后会自动提交，但保险起见)
+    m_model->select();
+
+    QMessageBox::information(this, "成功", "删除成功");
 }
 
 void MainWindow::saveAccountToDb(AddWindow &dlg)
