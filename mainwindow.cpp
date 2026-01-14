@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QSplitter>
 #include "databasemanager.h"
+#include "addwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -76,3 +77,27 @@ void MainWindow::initTableView()
     //让列宽自动铺满
     ui->tableViewAccounts->horizontalHeader()->setStretchLastSection(true);
 }
+
+void MainWindow::on_actionAdd_triggered()
+{
+    AddWindow dlg(this);
+
+    // 设置弹窗标题
+    dlg.setWindowTitle("新增账号信息");
+
+    // 调用 exec() 显示弹窗
+    // 如果用户点了"保存" (我们在 DialogAdd 里写了 accept())，它返回 QDialog::Accepted
+    // 如果用户点了"取消" 或右上角叉号，它返回 QDialog::Rejected
+    int result = dlg.exec();
+
+    // === 判断用户操作 ===
+    if (result == QDialog::Accepted) {
+        // 用户点击了保存，这里开始写数据库插入逻辑
+        // (参考 Day 3 的代码逻辑)
+        //saveAccountToDb(dlg);
+    } else {
+        // 用户点击了取消，什么都不用做
+        qDebug() << "用户取消了添加";
+    }
+}
+

@@ -19,6 +19,9 @@ public:
     ~MainWindow();
     void initSideBar();//初始化选项函数
 
+private slots:
+    void on_actionAdd_triggered();
+
 private:
     Ui::MainWindow *ui;
     QSqlTableModel *m_model;//声明数据模型指针
