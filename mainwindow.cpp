@@ -3,11 +3,14 @@
 #include <QSplitter>
 #include "databasemanager.h"
 #include "addwindow.h"
-#include "cryptoutil.h"  // [新增] 加密头文件
-#include <QDateTime>     // [新增] 用于记录时间
+#include "cryptoutil.h"  // 加密头文件
+#include <QDateTime>     // 用于记录时间
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QMessageBox>
+#include <QTimer>
+#include <QMenu>
+#include <QClipboard>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -82,6 +85,16 @@ void MainWindow::initTableView()
 
     //让列宽自动铺满
     ui->tableViewAccounts->horizontalHeader()->setStretchLastSection(true);
+
+    ui->tableViewAccounts->setModel(m_model);
+    ui->tableViewAccounts->setColumnHidden(0, true);
+
+    // 开启右键菜单策略
+    ui->tableViewAccounts->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    // 关联信号：当用户右键点击时，触发 showContextMenu 槽函数
+    connect(ui->tableViewAccounts, &QTableView::customContextMenuRequested,
+            this, &MainWindow::showContextMenu);
 }
 
 void MainWindow::on_actionAdd_triggered()
@@ -140,20 +153,66 @@ void MainWindow::on_searchEdit_textChanged(const QString &arg1)
     m_model->select();
 }
 
+void MainWindow::showContextMenu(const QPoint &pos)
+{
+    // 1. 获取鼠标点击的行索引
+    QModelIndex index = ui->tableViewAccounts->indexAt(pos);
+    if (!index.isValid()) return; // 如果点在空白处，不理会
+
+    // 2. 创建菜单
+    QMenu menu(this);
+    QAction *actCopyUser = menu.addAction("复制用户名");
+    QAction *actCopyPass = menu.addAction("复制密码");
+    QAction *actDel = menu.addAction("删除此行");
+
+    // 3. 弹出菜单并等待用户选择
+    QAction *selectedItem = menu.exec(ui->tableViewAccounts->mapToGlobal(pos));
+
+    // 获取当前行的数据
+    // 第3列是用户名，第4列是加密密码 (根据你的 initTableView 里的 setHeaderData 顺序)
+    // 最好检查一下列号：id=0, category=1, site=2, username=3, enc_pass=4
+    int row = index.row();
+    QString username = m_model->index(row, 3).data().toString();
+    QString encPass  = m_model->index(row, 4).data().toString();
+
+    // 处理点击逻辑
+    if (selectedItem == actCopyUser) {
+        QApplication::clipboard()->setText(username);
+    }
+    else if (selectedItem == actCopyPass) {
+        // 解密
+        QString plainPass = CryptoUtil::decrypt(encPass);
+        QApplication::clipboard()->setText(plainPass);
+
+        ui->statusbar->showMessage("密码已复制到剪贴板！(30秒后自动清除)");
+
+        // 30秒后清空剪贴板
+        QTimer::singleShot(30000, [=](){
+            if (QApplication::clipboard()->text() == plainPass) {
+                QApplication::clipboard()->clear();
+                ui->statusbar->showMessage("剪贴板已清除");
+            }
+        });
+    }
+    else if (selectedItem == actDel) {
+        //on_actionDel_triggered(); // 复用删除功能
+    }
+}
+
 void MainWindow::saveAccountToDb(AddWindow &dlg)
 {
-    // 1. 获取输入
+    // 获取输入
     QString category = dlg.getCategory();
     QString site = dlg.getSite();
     QString user = dlg.getUser();
     QString rawPass = dlg.getPassword();
     QString note = dlg.getNote();
 
-    // 2. 加密密码 (实现 CryptoUtil)
+    // 加密密码 (实现 CryptoUtil)
     // 如果还没实现加密，暂时用 rawPass 代替
     QString encPass = CryptoUtil::encrypt(rawPass);
 
-    // 3. 执行 SQL
+    // 执行 SQL
     QSqlQuery query;
     query.prepare("INSERT INTO accounts (category, site, username, enc_password, note, created_at) "
                   "VALUES (:cat, :site, :user, :pass, :note, :time)");
