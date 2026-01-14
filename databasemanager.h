@@ -24,7 +24,7 @@ private:
     DatabaseManager& operator=(const DatabaseManager&) = delete; // 禁止赋值
 
     QSqlDatabase m_db;
-    const QString DB_NAME = "secure_pass.db"; // 数据库文件名
+    const QString DB_NAME = "FinalLaba.db"; // 数据库文件名
 };
 
 #endif // DATABASEMANAGER_H

@@ -18,29 +18,25 @@ DatabaseManager& DatabaseManager::instance()
 
 bool DatabaseManager::openDb()
 {
-    // 如果已经打开，直接返回 true
-    if (m_db.isOpen()) {
-        return true;
-    }
+    if (m_db.isOpen()) return true;
 
-    // 添加 SQLite 驱动
     m_db = QSqlDatabase::addDatabase("QSQLITE");
 
-    // 设置数据库路径
-    // QCoreApplication::applicationDirPath() 指向编译出的 .exe 所在目录
-    QString dbPath = QCoreApplication::applicationDirPath() + "/" + DB_NAME;
+
+    // QString dbPath = QCoreApplication::applicationDirPath() + "/" + DB_NAME;
+
+    QString dbPath = "D:\\Qt_dev\\FinalProject\\db\\FinalLaba.db";
 
     m_db.setDatabaseName(dbPath);
 
-    qDebug() << "Connecting to database at:" << dbPath;
+    qDebug() << "正在连接数据库：" << dbPath;
 
     if (!m_db.open()) {
-        qDebug() << "Error: connection with database failed";
-        qDebug() << m_db.lastError().text();
+        qDebug() << "连接失败：" << m_db.lastError().text();
         return false;
     }
 
-    qDebug() << "Database: connection ok";
+    qDebug() << "连接成功！";
     return true;
 }
 
