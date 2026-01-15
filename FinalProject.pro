@@ -12,6 +12,7 @@ SOURCES += \
     addwindow.cpp \
     cryptoutil.cpp \
     databasemanager.cpp \
+    loginwindow.cpp \
     main.cpp \
     mainwindow.cpp
 
@@ -19,10 +20,12 @@ HEADERS += \
     addwindow.h \
     cryptoutil.h \
     databasemanager.h \
+    loginwindow.h \
     mainwindow.h
 
 FORMS += \
     addwindow.ui \
+    loginwindow.ui \
     mainwindow.ui
 
 # Default rules for deployment.
