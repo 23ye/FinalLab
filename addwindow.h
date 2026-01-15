@@ -29,9 +29,6 @@ public:
 private slots:
     void on_btnSave_clicked();   // 点击保存
     void on_btnCancel_clicked(); // 点击取消
-    //void on_listWidgetCategories_currentTextChanged(const QString &currentText);
-    //void on_searchEdit_textChanged(const QString &arg1);
-    //void on_actionDel_triggered();
 
 private:
     Ui::AddWindow *ui;

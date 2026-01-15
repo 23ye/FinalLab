@@ -13,6 +13,50 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog {
+            background-color: #ffffff;
+        }
+        
+        QLabel {
+            color: #606266;
+            font-size: 10pt;
+        }
+
+        /* 输入框 */
+        QLineEdit, QComboBox {
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 5px;
+            min-height: 25px;
+        }
+        QLineEdit:focus, QComboBox:focus {
+            border: 1px solid #409eff;
+        }
+
+        /* 下拉框箭头颜色 (可选) */
+        QComboBox::drop-down {
+            border: none;
+        }
+
+        /* 按钮通用 */
+        QPushButton {
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 6px 15px;
+            background-color: #fff;
+        }
+
+        /* 保存按钮 (蓝色) - 确保 objectName 是 btnSave */
+        QPushButton#btnSave {
+            background-color: #409eff;
+            color: white;
+            border: none;
+        }
+        QPushButton#btnSave:hover {
+            background-color: #66b1ff;
+        }</string>
+  </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="1">
     <spacer name="verticalSpacer">

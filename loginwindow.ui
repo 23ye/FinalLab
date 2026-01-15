@@ -13,6 +13,32 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">
+QPushButton {
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 6px 12px;
+            background-color: #ffffff;
+            color: #606266;
+        }
+QPushButton:hover {
+            background-color: #f5f7fa;
+            color: #409eff;
+        }
+QPushButton#btnLogin {
+            background-color: #409eff;
+            color: white;
+            border: none;
+            font-weight: bold;
+        }
+        QPushButton#btnLogin:hover {
+            background-color: #66b1ff;
+        }
+        QPushButton#btnLogin:pressed {
+            background-color: #3a8ee6;
+        }</string>
+  </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="2" column="1">
     <widget class="QLabel" name="label_3">
