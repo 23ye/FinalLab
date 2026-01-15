@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QSqlTableModel>
 #include "addwindow.h"
+#include <QtConcurrent>
+#include <QFutureWatcher>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -27,11 +29,16 @@ private slots:
     void showContextMenu(const QPoint &pos);
     void on_actionDel_triggered();
 
+    void on_actionExport_triggered();
+    void onExportFinished();
+
 private:
     Ui::MainWindow *ui;
     QSqlTableModel *m_model;//声明数据模型指针
     void initTableView();//初始化表格函数
     void saveAccountToDb(AddWindow &dlg);
+
+    QFutureWatcher<void> m_watcher;
 
 };
 #endif // MAINWINDOW_H

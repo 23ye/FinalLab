@@ -11,6 +11,13 @@
 #include <QTimer>
 #include <QMenu>
 #include <QClipboard>
+#include <QFileDialog>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QSqlRecord>
+#include <QFuture>
+#include <QtConcurrent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -26,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent)
     } else {
         ui->statusbar->showMessage("数据库连接失败，请检查日志。");
     }
+    connect(&m_watcher, &QFutureWatcher<void>::finished,
+            this, &MainWindow::onExportFinished);
+
 }
 
 MainWindow::~MainWindow()
@@ -262,5 +272,78 @@ void MainWindow::saveAccountToDb(AddWindow &dlg)
     } else {
         QMessageBox::critical(this, "错误", "数据库写入失败：" + query.lastError().text());
     }
+}
+
+
+void MainWindow::on_actionExport_triggered()
+{
+    QString fileName = QFileDialog::getSaveFileName(this,
+                                                    "导出加密备份",
+                                                    QDir::homePath() + "/backup.dat",
+                                                    "Encrypted Data (*.dat)");
+    if (fileName.isEmpty()) return;
+
+    // 2. [主线程] 收集数据
+    // 注意：一定要在主线程把数据从 Model 里取出来
+    // 因为 QSqlTableModel 不是线程安全的，不能在后台线程里操作它
+    QJsonArray jsonArray;
+    int rowCount = m_model->rowCount();
+
+    for (int i = 0; i < rowCount; ++i) {
+        QSqlRecord record = m_model->record(i);
+        QJsonObject jsonObj;
+        jsonObj["category"] = record.value("category").toString();
+        jsonObj["site"]     = record.value("site").toString();
+        jsonObj["username"] = record.value("username").toString();
+        jsonObj["enc_pass"] = record.value("enc_password").toString(); // 保持原有的密码加密状态
+        jsonObj["note"]     = record.value("note").toString();
+        jsonObj["time"]     = record.value("created_at").toString();
+        jsonArray.append(jsonObj);
+    }
+
+    // 3. 准备数据包 (转成字符串，方便传递给线程)
+    QJsonDocument doc(jsonArray);
+    QString rawData = doc.toJson();
+
+    // 4. [界面反馈] 显示“正在导出...”
+    ui->statusbar->showMessage("正在后台导出并加密数据，请稍候...");
+    ui->centralwidget->setEnabled(false); // 暂时禁用界面防止误操作
+
+    // 5. [多线程] 启动后台任务
+    // 使用 Lambda 表达式捕获 fileName 和 rawData
+    QFuture<void> future = QtConcurrent::run([=]() {
+
+        // --- 以下代码在子线程运行 ---
+
+        // A. 对整个文件内容进行二次加密 (保护用户名和网站名等元数据)
+        QString finalContent = CryptoUtil::encrypt(rawData);
+
+        // B. 写入文件
+        QFile file(fileName);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(finalContent.toUtf8());
+            file.close();
+        }
+
+        // --- 子线程结束 ---
+    });
+
+    // 6. 监控任务结束
+    // 当 future 结束时，m_watcher 会发出 finished 信号
+    m_watcher.setFuture(future);
+
+}
+
+void MainWindow::onExportFinished()
+{
+    // 恢复界面
+    ui->centralwidget->setEnabled(true);
+    ui->statusbar->showMessage("导出完成！", 5000);
+    QMessageBox::information(this, "系统提示", "备份文件已成功导出并加密！");
+}
+
+void MainWindow::on_actionImport_triggered()
+{
+
 }
 
