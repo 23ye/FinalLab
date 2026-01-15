@@ -42,6 +42,21 @@ QString AddWindow::getNote() const
     return ui->lineNote->text();
 }
 
+void AddWindow::setData(const QString &category, const QString &site, const QString &user, const QString &password, const QString &note)
+{
+    // 设置下拉框选中对应的分类
+    ui->comboCategory->setCurrentText(category);
+
+    // 填充文本框
+    ui->lineSite->setText(site);
+    ui->lineUser->setText(user);
+    ui->linePass->setText(password); // 这里传入的应该是解密后的明文
+    ui->lineNote->setText(note);
+
+    //修改窗口标题，提示用户现在是编辑模式
+    this->setWindowTitle("修改账号信息");
+}
+
 
 
 

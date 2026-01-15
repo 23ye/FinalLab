@@ -173,6 +173,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
     QMenu menu(this);
     QAction *actCopyUser = menu.addAction("复制用户名");
     QAction *actCopyPass = menu.addAction("复制密码");
+    QAction *actEdit = menu.addAction("修改此行");
     QAction *actDel = menu.addAction("删除此行");
 
     // 3. 弹出菜单并等待用户选择
@@ -203,6 +204,8 @@ void MainWindow::showContextMenu(const QPoint &pos)
                 ui->statusbar->showMessage("剪贴板已清除");
             }
         });
+    }else if(selectedItem == actEdit){
+        on_actionEdit_triggered(); // 复用修改功能
     }
     else if (selectedItem == actDel) {
         on_actionDel_triggered(); // 复用删除功能
@@ -304,7 +307,7 @@ void MainWindow::on_actionExport_triggered()
     QJsonDocument doc(jsonArray);
     QString rawData = doc.toJson();
 
-    // [界面反馈] 显示“正在导出...”
+    // 显示“正在导出...”
     ui->statusbar->showMessage("正在后台导出并加密数据，请稍候...");
     ui->centralwidget->setEnabled(false); // 暂时禁用界面防止误操作
 
@@ -417,6 +420,72 @@ void MainWindow::on_actionImport_triggered()
     } else {
         db.rollback(); // 如果提交失败，回滚所有操作
         QMessageBox::critical(this, "失败", "数据库写入失败，已撤销操作。");
+    }
+}
+
+
+void MainWindow::on_actionEdit_triggered()
+{
+    // 1. 获取当前选中的行
+    int curRow = ui->tableViewAccounts->currentIndex().row();
+    if (curRow < 0) {
+        QMessageBox::warning(this, "提示", "请先选择要修改的账号！");
+        return;
+    }
+
+    // 2. 从模型中提取现有数据
+    // 记得：第0列是ID(隐藏的)，第4列是加密密码
+    QSqlRecord record = m_model->record(curRow);
+
+    int id = record.value("id").toInt(); // 拿到主键，更新时要用 WHERE id = ...
+    QString category = record.value("category").toString();
+    QString site     = record.value("site").toString();
+    QString user     = record.value("username").toString();
+    QString encPass  = record.value("enc_password").toString();
+    QString note     = record.value("note").toString();
+
+    // 3. 解密密码 (为了让用户看到明文并修改)
+    QString plainPass = CryptoUtil::decrypt(encPass);
+
+    // 4. 实例化弹窗并填充数据
+    AddWindow dlg(this);
+    dlg.setData(category, site, user, plainPass, note); // 填入旧数据
+
+    // 5. 显示弹窗并等待结果
+    if (dlg.exec() == QDialog::Accepted) {
+        // === 用户点击了保存，开始更新数据库 ===
+
+        // 获取新输入的数据（哪怕用户没改，也要读回来）
+        QString newCat  = dlg.getCategory();
+        QString newSite = dlg.getSite();
+        QString newUser = dlg.getUser();
+        QString newPass = dlg.getPassword(); // 这是明文
+        QString newNote = dlg.getNote();
+
+        // 重新加密密码
+        QString newEncPass = CryptoUtil::encrypt(newPass);
+
+        // 执行 SQL UPDATE
+        QSqlQuery query;
+        // 这里的关键是 WHERE id = :id
+        query.prepare("UPDATE accounts SET "
+                      "category = :cat, site = :site, username = :user, "
+                      "enc_password = :pass, note = :note "
+                      "WHERE id = :id");
+
+        query.bindValue(":cat",  newCat);
+        query.bindValue(":site", newSite);
+        query.bindValue(":user", newUser);
+        query.bindValue(":pass", newEncPass);
+        query.bindValue(":note", newNote);
+        query.bindValue(":id",   id); // 绑定主键ID
+
+        if (query.exec()) {
+            QMessageBox::information(this, "成功", "账号信息已更新！");
+            m_model->select(); // 刷新表格显示
+        } else {
+            QMessageBox::critical(this, "失败", "更新失败：" + query.lastError().text());
+        }
     }
 }
 
