@@ -18,6 +18,7 @@
 #include <QSqlRecord>
 #include <QFuture>
 #include <QtConcurrent>
+#include "aboutwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -487,5 +488,12 @@ void MainWindow::on_actionEdit_triggered()
             QMessageBox::critical(this, "失败", "更新失败：" + query.lastError().text());
         }
     }
+}
+
+
+void MainWindow::on_actionAbout_triggered()
+{
+    AboutWindow dlg(this);
+    dlg.exec();
 }
 
