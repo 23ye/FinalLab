@@ -19,6 +19,8 @@
 #include <QFuture>
 #include <QtConcurrent>
 #include "aboutwindow.h"
+#include <QApplication>
+#include <QProcess>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -495,5 +497,13 @@ void MainWindow::on_actionAbout_triggered()
 {
     AboutWindow dlg(this);
     dlg.exec();
+}
+
+
+void MainWindow::on_actionExit_triggered()
+{
+    //开启一个新的程序实例
+    QProcess::startDetached(QApplication::applicationFilePath(), QStringList());
+    QApplication::exit();
 }
 

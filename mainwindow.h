@@ -38,6 +38,8 @@ private slots:
 
     void on_actionAbout_triggered();
 
+    void on_actionExit_triggered();
+
 private:
     Ui::MainWindow *ui;
     QSqlTableModel *m_model;//声明数据模型指针
