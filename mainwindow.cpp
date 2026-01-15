@@ -283,9 +283,8 @@ void MainWindow::on_actionExport_triggered()
                                                     "Encrypted Data (*.dat)");
     if (fileName.isEmpty()) return;
 
-    // 2. [主线程] 收集数据
-    // 注意：一定要在主线程把数据从 Model 里取出来
-    // 因为 QSqlTableModel 不是线程安全的，不能在后台线程里操作它
+    // [主线程] 收集数据
+    // 注意：一定要在主线程把数据从 Model 里取出来，因为 QSqlTableModel 不是线程安全的，不能在后台线程里操作它
     QJsonArray jsonArray;
     int rowCount = m_model->rowCount();
 
@@ -301,19 +300,19 @@ void MainWindow::on_actionExport_triggered()
         jsonArray.append(jsonObj);
     }
 
-    // 3. 准备数据包 (转成字符串，方便传递给线程)
+    // 准备数据包 (转成字符串，方便传递给线程)
     QJsonDocument doc(jsonArray);
     QString rawData = doc.toJson();
 
-    // 4. [界面反馈] 显示“正在导出...”
+    // [界面反馈] 显示“正在导出...”
     ui->statusbar->showMessage("正在后台导出并加密数据，请稍候...");
     ui->centralwidget->setEnabled(false); // 暂时禁用界面防止误操作
 
-    // 5. [多线程] 启动后台任务
+    // [多线程] 启动后台任务
     // 使用 Lambda 表达式捕获 fileName 和 rawData
     QFuture<void> future = QtConcurrent::run([=]() {
 
-        // --- 以下代码在子线程运行 ---
+        // 以下代码在子线程运行
 
         // A. 对整个文件内容进行二次加密 (保护用户名和网站名等元数据)
         QString finalContent = CryptoUtil::encrypt(rawData);
@@ -325,10 +324,10 @@ void MainWindow::on_actionExport_triggered()
             file.close();
         }
 
-        // --- 子线程结束 ---
+        //子线程结束
     });
 
-    // 6. 监控任务结束
+    // 监控任务结束
     // 当 future 结束时，m_watcher 会发出 finished 信号
     m_watcher.setFuture(future);
 
@@ -344,6 +343,80 @@ void MainWindow::onExportFinished()
 
 void MainWindow::on_actionImport_triggered()
 {
+    // 选择备份文件
+    QString fileName = QFileDialog::getOpenFileName(this,
+                                                    "选择备份文件",
+                                                    QDir::homePath(),
+                                                    "Encrypted Data (*.dat);;All Files (*)");
+    if (fileName.isEmpty()) return;
 
+    // 确认提示 (防止误操作)
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "确认导入",
+                                  "导入操作会将备份中的数据追加到当前数据库中。\n是否继续？",
+                                  QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::No) return;
+
+    // 读取并解密文件
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "错误", "无法打开文件！");
+        return;
+    }
+
+    QByteArray encryptedData = file.readAll();
+    file.close();
+
+    // 全文解密 (对应导出时的 CryptoUtil::encrypt)
+    QString jsonString = CryptoUtil::decrypt(QString::fromUtf8(encryptedData));
+
+    // 解析 JSON
+    QJsonParseError jsonError;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8(), &jsonError);
+
+    if (jsonError.error != QJsonParseError::NoError || !doc.isArray()) {
+        QMessageBox::critical(this, "错误", "文件格式错误或解密失败！\n请确认选择了正确的文件。");
+        return;
+    }
+
+    QJsonArray jsonArray = doc.array();
+
+    // 批量写入数据库 (使用事务，速度快且安全)
+    QSqlDatabase db = DatabaseManager::instance().getDb();
+    db.transaction(); // 开启事务
+
+    QSqlQuery query;
+    query.prepare("INSERT INTO accounts (category, site, username, enc_password, note, created_at) "
+                  "VALUES (:cat, :site, :user, :pass, :note, :time)");
+
+    int successCount = 0;
+
+    for (const QJsonValue &val : jsonArray) {
+        QJsonObject obj = val.toObject();
+
+        query.bindValue(":cat",  obj["category"].toString());
+        query.bindValue(":site", obj["site"].toString());
+        query.bindValue(":user", obj["username"].toString());
+
+        // 注意：导出时保存的是 enc_pass (已经是加密的)，所以这里直接存入，不需要再加密一次
+        query.bindValue(":pass", obj["enc_pass"].toString());
+
+        query.bindValue(":note", obj["note"].toString());
+        query.bindValue(":time", obj["time"].toString());
+
+        if (query.exec()) {
+            successCount++;
+        }
+    }
+
+    // 提交事务并刷新
+    if (db.commit()) {
+        m_model->select(); // 刷新表格
+        QMessageBox::information(this, "成功",
+                                 QString("导入完成！成功恢复 %1 条数据。").arg(successCount));
+    } else {
+        db.rollback(); // 如果提交失败，回滚所有操作
+        QMessageBox::critical(this, "失败", "数据库写入失败，已撤销操作。");
+    }
 }
 
