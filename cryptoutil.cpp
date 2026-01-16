@@ -1,11 +1,11 @@
 #include "cryptoutil.h"
 
-// 定义一个固定的密钥（你可以随便改）
-const QString CryptoUtil::KEY = "MySecretKey2025@QtProject";
+// 定义一个固定的密钥
+const QString CryptoUtil::KEY = "inklin233@gmail";
 
 QString CryptoUtil::encrypt(const QString &plainText)
 {
-    // 简单的异或加密实现（课程设计级别通用）
+    // 简单的异或加密实现
     // 1. 转为字节数组
     QByteArray data = plainText.toUtf8();
     QByteArray keyBytes = KEY.toUtf8();
