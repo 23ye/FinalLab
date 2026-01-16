@@ -37,7 +37,7 @@
             outline: 0;
         }
         QListWidget::item {
-            height: 36px;
+            height: 20px;
             padding-left: 8px;
             margin: 2px 4px;
             border-radius: 4px;
@@ -139,7 +139,7 @@ QTableView {
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
